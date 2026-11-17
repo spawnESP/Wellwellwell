@@ -1,11 +1,10 @@
-
 name: Build SpawnerESP
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - '*.zip'
+      - 'SpawnerESP-26.1-Fabric-source-fixed.zip'
       - '.github/workflows/**'
 
 jobs:
@@ -16,21 +15,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Find and extract source ZIP
+      - name: Find and extract fixed source ZIP
         id: project
         run: |
-          ZIP_FILE=$(find . -maxdepth 1 -name '*.zip' -print -quit)
+          ZIP_FILE="./SpawnerESP-26.1-Fabric-source-fixed.zip"
 
-          if [ -z "$ZIP_FILE" ]; then
-            echo "No source ZIP found"
+          if [ ! -f "$ZIP_FILE" ]; then
+            echo "Expected source ZIP not found: $ZIP_FILE"
             exit 1
           fi
 
-          mkdir extracted
-          unzip "$ZIP_FILE" -d extracted
+          mkdir -p extracted
+          unzip -q "$ZIP_FILE" -d extracted
 
           BUILD_FILE=$(find extracted -name build.gradle -print -quit)
-
           if [ -z "$BUILD_FILE" ]; then
             echo "build.gradle not found"
             exit 1
@@ -38,13 +36,6 @@ jobs:
 
           PROJECT_DIR=$(dirname "$BUILD_FILE")
           echo "dir=$PROJECT_DIR" >> "$GITHUB_OUTPUT"
-
-      - name: Fix Minecraft 26.1 dependencies
-        working-directory: ${{ steps.project.outputs.dir }}
-        run: |
-          sed -i 's/modImplementation /implementation /g' build.gradle
-          echo "Dependency configuration updated:"
-          grep -n 'implementation' build.gradle
 
       - name: Set up Java 25
         uses: actions/setup-java@v5
