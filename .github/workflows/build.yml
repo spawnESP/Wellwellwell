@@ -20,22 +20,34 @@ jobs:
         id: project
         run: |
           ZIP_FILE=$(find . -maxdepth 1 -name '*.zip' -print -quit)
+
           if [ -z "$ZIP_FILE" ]; then
             echo "No source ZIP found"
             exit 1
           fi
+
           mkdir extracted
           unzip "$ZIP_FILE" -d extracted
+
           BUILD_FILE=$(find extracted -name build.gradle -print -quit)
+
           if [ -z "$BUILD_FILE" ]; then
             echo "build.gradle not found"
             exit 1
           fi
+
           PROJECT_DIR=$(dirname "$BUILD_FILE")
           echo "dir=$PROJECT_DIR" >> "$GITHUB_OUTPUT"
 
+      - name: Fix Minecraft 26.1 dependencies
+        working-directory: ${{ steps.project.outputs.dir }}
+        run: |
+          sed -i 's/modImplementation /implementation /g' build.gradle
+          echo "Dependency configuration updated:"
+          grep -n 'implementation' build.gradle
+
       - name: Set up Java 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '25'
@@ -54,3 +66,4 @@ jobs:
         with:
           name: SpawnerESP-JAR
           path: ${{ steps.project.outputs.dir }}/build/libs/*.jar
+          if-no-files-found: error
